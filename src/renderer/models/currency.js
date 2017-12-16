@@ -9,9 +9,9 @@ export default class Currency {
 
   get percentChanges () {
     return {
-      '1h': this.rawData['percent_change_1h'],
-      '24h': this.rawData['percent_change_24h'],
-      '7d': this.rawData['percent_change_7d']
+      'hour': this.rawData['percent_change_1h'],
+      'day': this.rawData['percent_change_24h'],
+      'week': this.rawData['percent_change_7d']
     }
   }
 

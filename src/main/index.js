@@ -37,7 +37,7 @@ app.on('ready', createWindow)
 
 ipcMain.on('init', async (e) => {
   let coinmarketcap = new CoinmarketcapClient()
-  let currencyData = await coinmarketcap.ticker(null, 'EUR')
+  let currencyData = await coinmarketcap.ticker(null, 'EUR', 10)
   e.sender.send('data', currencyData)
 })
 

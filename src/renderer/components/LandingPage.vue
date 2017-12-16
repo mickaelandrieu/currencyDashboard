@@ -1,56 +1,73 @@
 <template>
   <div id="wrapper">
-    <img id="logo" src="~@/assets/logo.png" alt="electron-vue">
+    <!--<img id="logo" src="~@/assets/logo.png" alt="electron-vue">-->
     <main>
       <div class="left-side">
-        <span class="title">
-          Welcome to your new project!
-        </span>
-        <system-information></system-information>
-      </div>
-
-      <div class="right-side">
-        <div class="doc">
-          <div class="title">Getting Started</div>
-          <p>
-            electron-vue comes packed with detailed documentation that covers everything from
-            internal configurations, using the project structure, building your application,
-            and so much more.
-          </p>
-          <button @click="open('https://simulatedgreg.gitbooks.io/electron-vue/content/')">Read the Docs</button><br><br>
-        </div>
-        <div class="doc">
-          <div class="title alt" @click="getCurrencies()">Other Documentation</div>
-          <button class="alt" @click="open('https://electron.atom.io/docs/')">Electron</button>
-          <button class="alt" @click="open('https://vuejs.org/v2/guide/')">Vue.js</button>
-        </div>
+        <h1 class="title">CryptoBoard</h1>
+        <h3><b>Total money</b>: {{ totalMoney }}</h3>
+        <ul>
+          <Currency
+            v-for="currency in currencies"
+            v-bind:currency="currency"
+            v-bind:key="currency.name"
+          ></Currency>
+        </ul>
       </div>
     </main>
   </div>
 </template>
 
 <script>
-  import SystemInformation from './LandingPage/SystemInformation'
-  import Currency from './../models/currency'
+  import Currency from './LandingPage/Currency'
+  import CurrencyModel from './../models/currency'
+
+  const storage = require('electron').remote.require('electron-settings')
 
   export default {
     name: 'landing-page',
-    components: { SystemInformation },
+    data () {
+      return {
+        currencies: {},
+        stocks: {},
+        totalMoney: 0
+      }
+    },
+    components: { Currency },
     methods: {
       open (link) {
         this.$electron.shell.openExternal(link)
+      },
+      calculateMoney (currencies) {
+        let totalMoney = 0
+        for (let currency in this.stocks) {
+          totalMoney += this.stocks[currency] * currencies[currency].price
+        }
+
+        return totalMoney
       }
     },
     created: function () {
       this.$electron.ipcRenderer.send('init')
-  
+
       this.$electron.ipcRenderer.on('data', (e, data) => {
-        let currencies = []
         for (let currencyData of data) {
-          currencies.push(new Currency(currencyData))
+          let currencyName = currencyData.name
+          this.currencies[currencyName] = new CurrencyModel(currencyData)
         }
-        console.log(currencies)
+
+        this.totalMoney = this.calculateMoney(this.currencies)
       })
+
+      if (storage.has('stocks')) {
+        this.stocks = storage.get('stocks')
+      } else {
+        this.stocks = {
+          'Bitcoin': 0.28,
+          'Ethereum': 1.005,
+          'Litecoin': 47,
+          'Ripple': 340
+        }
+      }
     }
   }
 </script>
@@ -87,54 +104,5 @@
   main {
     display: flex;
     justify-content: space-between;
-  }
-
-  main > div { flex-basis: 50%; }
-
-  .left-side {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .welcome {
-    color: #555;
-    font-size: 23px;
-    margin-bottom: 10px;
-  }
-
-  .title {
-    color: #2c3e50;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 6px;
-  }
-
-  .title.alt {
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-
-  .doc p {
-    color: black;
-    margin-bottom: 10px;
-  }
-
-  .doc button {
-    font-size: .8em;
-    cursor: pointer;
-    outline: none;
-    padding: 0.75em 2em;
-    border-radius: 2em;
-    display: inline-block;
-    color: #fff;
-    background-color: #4fc08d;
-    transition: all 0.15s ease;
-    box-sizing: border-box;
-    border: 1px solid #4fc08d;
-  }
-
-  .doc button.alt {
-    color: #42b983;
-    background-color: transparent;
   }
 </style>
