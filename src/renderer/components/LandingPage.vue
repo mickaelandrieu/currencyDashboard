@@ -4,7 +4,18 @@
     <main>
       <div class="left-side">
         <h1 class="title">CryptoBoard</h1>
-        <h3><b>Total money</b>: {{ totalMoney }}</h3>
+        <h3>Stocks</h3>
+        <b>Total Money: {{ totalMoney }} €</b>
+        <ul>
+          <li
+            v-for="stock in stocks"
+            v-bind:key="stock.name"
+          >
+            {{ stock.name }} : {{ stock.value }} €
+          </li>
+        </ul>
+
+        <h3>Currencies</h3>
         <ul>
           <Currency
             v-for="currency in currencies"
@@ -20,6 +31,7 @@
 <script>
   import Currency from './LandingPage/Currency'
   import CurrencyModel from './../models/currency'
+  import Stock from './../models/stock'
 
   const storage = require('electron').remote.require('electron-settings')
 
@@ -37,37 +49,45 @@
       open (link) {
         this.$electron.shell.openExternal(link)
       },
-      calculateMoney (currencies) {
-        let totalMoney = 0
-        for (let currency in this.stocks) {
-          totalMoney += this.stocks[currency] * currencies[currency].price
+      calculateValue () {
+        let totalValue = 0
+        for (let stock of this.stocks) {
+          totalValue += stock.value
         }
 
-        return totalMoney
+        return totalValue
       }
     },
     created: function () {
       this.$electron.ipcRenderer.send('init')
 
-      this.$electron.ipcRenderer.on('data', (e, data) => {
-        for (let currencyData of data) {
-          let currencyName = currencyData.name
-          this.currencies[currencyName] = new CurrencyModel(currencyData)
-        }
-
-        this.totalMoney = this.calculateMoney(this.currencies)
-      })
-
       if (storage.has('stocks')) {
         this.stocks = storage.get('stocks')
       } else {
-        this.stocks = {
-          'Bitcoin': 0.28,
-          'Ethereum': 1.005,
-          'Litecoin': 47,
-          'Ripple': 340
-        }
+        this.stocks = [
+          new Stock('Bitcoin', 0.28),
+          new Stock('Ethereum', 1.005),
+          new Stock('Litecoin', 47),
+          new Stock('Ripple', 340)
+        ]
+
+        storage.set('stocks', this.stocks)
       }
+
+      this.$electron.ipcRenderer.on('data', (e, data) => {
+        for (let currencyData of data) {
+          let currency = new CurrencyModel(currencyData)
+          this.currencies[currency.name] = currency
+
+          for (let stock of this.stocks) {
+            if (stock.name === currency.name) {
+              stock.value = currency.price * stock.amount
+            }
+          }
+        }
+
+        this.totalMoney = this.calculateValue()
+      })
     }
   }
 </script>
